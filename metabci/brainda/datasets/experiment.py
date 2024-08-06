@@ -126,13 +126,19 @@ class Experiment(BaseDataset):
                 url = data_path
                 break
 
+        if path == None:
+            mne_home = os.path.expanduser('~')
+            mne_dir = os.path.join(mne_home, 'AssistBCI\\mne_Raw_da')
+            if not os.path.exists(mne_dir):
+                os.makedirs(mne_dir)
+
         file_dest = mne_data_path(
             url,
             self.experiment_name,
-            path=path,
+            path=mne_dir,
             proxies=proxies,
             force_update=force_update,
-            update_path=update_path,
+            update_path=False,
         )
 
         return file_dest
