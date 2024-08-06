@@ -65,17 +65,17 @@ l = 5
 models = OrderedDict([
     ('fbscca', FBSCCA(
         filterbank, filterweights=filterweights)),
-    ('fbecca', FBECCA(
-        filterbank, filterweights=filterweights)),
-    ('fbdsp', FBDSP(
-        filterbank, filterweights=filterweights)),
-    ('fbtrca', FBTRCA(
-        filterbank, filterweights=filterweights)),
-    ('fbtdca', FBTDCA(
-        filterbank, l, n_components=8,
-        filterweights=filterweights)),
-    ('trca', TRCA(n_components=1)),
-    ('trcar', TRCAR(n_components=1))
+    # ('fbecca', FBECCA(
+    #     filterbank, filterweights=filterweights)),
+    # ('fbdsp', FBDSP(
+    #     filterbank, filterweights=filterweights)),
+    # ('fbtrca', FBTRCA(
+    #     filterbank, filterweights=filterweights)),
+    # ('fbtdca', FBTDCA(
+    #     filterbank, l, n_components=8,
+    #     filterweights=filterweights)),
+    # ('trca', TRCA(n_components=1)),
+    # ('trcar', TRCAR(n_components=1))
 ])
 
 X, y, meta = paradigm.get_data(

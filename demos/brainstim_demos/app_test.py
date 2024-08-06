@@ -168,6 +168,7 @@ class stim_pos_setting(APP):
         self.hide_sq = Event()
         self.hide_sq.clear()
         self.old_hide_flag = self.hide_sq.is_set()
+        self.current_stim_name = None
 
         super().__init__(name='stim_pos_setting', dict=dict, w=w, h=h, screen_id=screen_id, *args, **kwargs)
 
@@ -348,15 +349,16 @@ class stim_pos_setting(APP):
                 buffer = {'paradigm': paradigm, 'stim_names': stim_names, 'stim_pos': stim_pos, 'n_elements': n_elements,
                         'stim_length': stim_length, 'stim_width': stim_width, 'stim_time': stim_time, 'freqs': freqs,
                           'phases': phases, 'key_mouse_mapping': key_mouse_mapping}
-                saver.save(buffer)
+                name = saver.save(buffer)
+                self.current_stim_name = name
                 buffer = []
 
             elif self.is_button_clicked(self.button_newstim, x, y):
                 self.button_newstim.color = (0, 255, 0)  # 设置按钮颜色为绿色色
                 self.hide()
-                self.send('quit_par', True)
-                self.send('framework_state', 'showing')
-                #self.send('start_par', True)
+                # self.send('quit_par', True)
+                # self.send('framework_state', 'showing')
+                self.send('start_par', self.current_stim_name)
                 #self.send('pause_app', True)
 
             elif self.is_button_clicked(self.button_quit, x, y):
@@ -424,8 +426,6 @@ class stim_pos_setting(APP):
             if self.is_button_clicked(self.button_quit_par, x, y):
                 self.button_quit_par.color = (127, 127, 127)
                 self.send('quit_par', True)
-                self.send('framework_state', 'started')
-                time.sleep(0.1)
                 self.appear()
 
 
@@ -708,7 +708,24 @@ class Experiment(Process):
     def get_hyper(self, name):
         return self._buffer[name + '_arg'], self._buffer[name + '_kwargs']
 
-    def experiment_setting(self):
+    def pop_window(self, txt, ss):
+        root = tk.Tk()
+        root.overrideredirect(True)
+
+        frame = tk.Frame(root)
+
+        label = tk.Label(frame, text=txt, font=('Arial', 40), anchor="center")
+        label.pack()
+        frame.grid()
+
+        x = int((root.winfo_screenwidth() - label.winfo_reqwidth()) / 2)
+        y = int((root.winfo_screenheight() - label.winfo_reqheight()) / 2)
+        root.geometry("+{}+{}".format(x, y))
+        root.after(ss, root.destroy)
+        root.mainloop()
+
+
+    def experiment_setup(self):
         def submit():
             paradigm = paradigm_var.get()
             location = location_entry.get()
@@ -718,7 +735,7 @@ class Experiment(Process):
             subject = int(subject_entry.get())
             rows = int(rows_entry.get())
             columns = int(columns_entry.get())
-            n_elements = int(n_elements_entry.get())
+            n_elements = int(rows * columns)
             stim_length = int(stim_length_entry.get())
             stim_width = int(stim_width_entry.get())
             display_time = float(display_time_entry.get())
@@ -731,23 +748,6 @@ class Experiment(Process):
                 online = True
             else:
                 online = False
-
-            print("Values submitted:")
-            print(f"Paradigm: {paradigm}")
-            print(f"Location: {location}")
-            print(f"Experiment name: {experiment_name}")
-            print(f"Subject: {subject}")
-            print(f"Rows: {rows}")
-            print(f"Columns: {columns}")
-            print(f"Number of Elements: {n_elements}")
-            print(f"Stimulus Length: {stim_length}")
-            print(f"Stimulus Width: {stim_width}")
-            print(f"Display Time: {display_time}")
-            print(f"Rest Time: {rest_time}")
-            print(f"Index Time: {index_time}")
-            print(f"Response Time: {response_time}")
-            print(f"Number of Repetitions: {nrep}")
-            print(f"Online: {online}")
 
 
             '''
@@ -777,8 +777,8 @@ class Experiment(Process):
                 'online': online,
             }
 
-
-            self.root.destroy()
+            self.setup_flag = True
+            self.goto('mean')
 
         # Create a tkinter window
         self.root = tk.Tk()
@@ -786,10 +786,10 @@ class Experiment(Process):
         self.root.title("Experiment Settings")
 
         # Create labels and entries for each parameter
-        parameters = ['Paradigm', 'Location', 'Experiment name', 'Subject', 'Rows', 'Columns', 'Number of Elements', 'Stimulus Length', 'Stimulus Width',
+        parameters = ['Paradigm', 'Location', 'Experiment name', 'Subject', 'Rows', 'Columns', 'Stimulus Length', 'Stimulus Width',
                       'Display Time', 'Rest Time', 'Index Time', 'Response Time', 'Number of Repetitions', 'Online']
 
-        default_values = ['Default', 'Training', '0', '4', '5', '20', '200', '200', '1', '1', '1', '2', '5']
+        default_values = ['Default', 'Training', '0', '2', '2', '200', '200', '1', '1', '1', '2', '4']
 
         for i, parameter in enumerate(parameters):
             ttk.Label(self.root, text=parameter).grid(row=i, column=0)
@@ -820,55 +820,47 @@ class Experiment(Process):
         columns_entry.insert(0, default_values[4])  # Insert default value
         columns_entry.grid(row=5, column=1)
 
-        n_elements_entry = ttk.Entry(self.root)
-        n_elements_entry.insert(0, default_values[5])  # Insert default value
-        n_elements_entry.grid(row=6, column=1)
 
         stim_length_entry = ttk.Entry(self.root)
-        stim_length_entry.insert(0, default_values[6])  # Insert default value
-        stim_length_entry.grid(row=7, column=1)
+        stim_length_entry.insert(0, default_values[5])  # Insert default value
+        stim_length_entry.grid(row=6, column=1)
 
         stim_width_entry = ttk.Entry(self.root)
-        stim_width_entry.insert(0, default_values[7])  # Insert default value
-        stim_width_entry.grid(row=8, column=1)
+        stim_width_entry.insert(0, default_values[6])  # Insert default value
+        stim_width_entry.grid(row=7, column=1)
 
         display_time_entry = ttk.Entry(self.root)
-        display_time_entry.insert(0, default_values[8])  # Insert default value
-        display_time_entry.grid(row=9, column=1)
+        display_time_entry.insert(0, default_values[7])  # Insert default value
+        display_time_entry.grid(row=8, column=1)
 
         rest_time_entry = ttk.Entry(self.root)
-        rest_time_entry.insert(0, default_values[9])  # Insert default value
-        rest_time_entry.grid(row=10, column=1)
+        rest_time_entry.insert(0, default_values[8])  # Insert default value
+        rest_time_entry.grid(row=9, column=1)
 
         index_time_entry = ttk.Entry(self.root)
-        index_time_entry.insert(0, default_values[10])  # Insert default value
-        index_time_entry.grid(row=11, column=1)
+        index_time_entry.insert(0, default_values[9])  # Insert default value
+        index_time_entry.grid(row=10, column=1)
 
         response_time_entry = ttk.Entry(self.root)
-        response_time_entry.insert(0, default_values[11])  # Insert default value
-        response_time_entry.grid(row=12, column=1)
+        response_time_entry.insert(0, default_values[10])  # Insert default value
+        response_time_entry.grid(row=11, column=1)
 
         nrep_entry = ttk.Entry(self.root)
-        nrep_entry.insert(0, default_values[12])  # Insert default value
-        nrep_entry.grid(row=13, column=1)
+        nrep_entry.insert(0, default_values[11])  # Insert default value
+        nrep_entry.grid(row=12, column=1)
 
         online_var = tk.StringVar()
         online_combobox = ttk.Combobox(self.root, textvariable=online_var, values=['Yes', 'No'])
         online_combobox.current(1)
-        online_combobox.grid(row=14, column=1)
+        online_combobox.grid(row=13, column=1)
 
         # Submit button
         submit_button = ttk.Button(self.root, text="Submit", command=submit, style='Custom.TButton')
-        submit_button.grid(row=15, column=0, columnspan=2, padx=10, pady=10, sticky='we')
+        submit_button.grid(row=14, column=0, columnspan=2, padx=10, pady=10, sticky='we')
 
         self.root.columnconfigure(0, weight=1)
         self.root.columnconfigure(1, weight=1)
         self.root.mainloop()
-
-    def experiment_setup(self):
-        self.experiment_setting()
-        self.setup_flag = True
-        self.next_win = 'mean'
 
 
     def training(self, experiment_name, subject):
@@ -1016,91 +1008,98 @@ class Experiment(Process):
         return best_model_name, best_model
 
     def start_experiment(self):
-        self.experiment_button.config(state=tk.DISABLED)
+        try:
+            self.experiment_button.config(state=tk.DISABLED)
 
-        old_workers = self.get("current_workers")
-        device = self.get("connect_device")
+            old_workers = self.get("current_workers")
+            device = self.get("connect_device")
 
-        self.parameters["device_type"] = self.DEVICE_COMM_TOOL[device]
-        self.parameters["port_addr"] = self.DEVICE_COMM_PORT[device]
-        self.parameters['channels'] = self.DEVICE_CHANNELS[device]
-        self.parameters['srate'] = self.DEVICE_SRATE[device]
+            if device == None:
+                self.pop_window("Device unconnected", 1000)
+                return
 
-        n_elements = self.parameters['n_elements']
-        event = [n+1 for n in range(n_elements)]
-        self.parameters['freqs'] = np.arange(8, 8 + n_elements * 0.2 - 0.1, 0.2).tolist()  # 目前暂不支持自定义频率
-        self.parameters['phases'] = np.array([(i % 4) * 0.5 for i in range(n_elements)]).tolist()
+            self.parameters["device_type"] = self.DEVICE_COMM_TOOL[device]
+            self.parameters["port_addr"] = self.DEVICE_COMM_PORT[device]
+            self.parameters['channels'] = self.DEVICE_CHANNELS[device]
+            self.parameters['srate'] = self.DEVICE_SRATE[device]
 
-
-        self.send_hyper("amplifier", device_address=('127.0.0.1', 12345), srate=1000, num_chans=8, use_trigger=True, lsl_source_id="trigger")
-        self.send_hyper("marker", interval=[1.4, 5.5], srate=1000, save_data=True, info=self.parameters, clear_after_use=True, events=event,
-                        location=self.parameters['location'], experiment_name=self.parameters['experiment_name'], subject=self.parameters['subject'])
-
-
-        #重新连接设备，进行训练初始化设置
-        self.send("connect_device", None)
-
-        while self.get("device_state") == 'connected':
-            time.sleep(1)
-        print("unconnected, ready to connect to:", device)
-        self.send("connect_device", device)
-
-        while self.get("device_state") == 'not_connected':
-            time.sleep(1)
-        print("connected again, ready to load worker:", device)
-        self.send("reg_worker", "EmptyWorker")
-
-        while self.get('reg_worker') != None:
-            time.sleep(1)
-
-        #设备和worker重新连接后开始实验
-        self.send("framework_type", 'experiment')
-        print(self.get("framework_type"))
-        self.send('experiment_parameters', self.parameters)
-        self.send("quit_par", True)
-        self.send("framework_state", 'closed')
-
-        self.root.withdraw()  # 隐藏窗口
-
-        self.send("start_worker", True)
-
-        #等待实验完成后，application framework重启
-        while self.get("framework_state") == 'closed':
-            time.sleep(1)
-
-        #断开设备为应用模式做准备, 同时在marker也会将实验数据保存
-        self.send("connect_device", None)
-        while self.get("device_state") == 'connected':
-            time.sleep(1)
-        print("unconnected, ready to connect to:", device)
-        time.sleep(5)
-
-        self.root.deiconify()
-
-        model_name, best_model = self.training(experiment_name=self.parameters['experiment_name'], subject=self.parameters['subject'])
+            n_elements = self.parameters['n_elements']
+            event = [n+1 for n in range(n_elements)]
+            self.parameters['freqs'] = np.arange(8, 8 + n_elements * 0.2 - 0.1, 0.2).tolist()  # 目前暂不支持自定义频率
+            self.parameters['phases'] = np.array([(i % 4) * 0.5 for i in range(n_elements)]).tolist()
 
 
-        #model saving 位置暂不支持自定义
-        home_dir = os.path.join(os.path.expanduser('~'), 'AssistBCI\\Personal_Model')
-        if not os.path.exists(home_dir):
-            os.makedirs(home_dir)
+            #self.send_hyper("amplifier", device_address=('127.0.0.1', 12345), srate=1000, num_chans=8, use_trigger=True, lsl_source_id="trigger")
+            self.send_hyper("marker", interval=[1.4, 5.5], srate=1000, save_data=True, info=self.parameters, clear_after_use=False, events=event,
+                            location=self.parameters['location'], experiment_name=self.parameters['experiment_name'], subject=self.parameters['subject'])
 
-        name = model_name + datetime.datetime.now().strftime("_%Y%m%d%H%M%S")
-        model_dir = os.path.join(home_dir, name + '.pkl')
 
-        with open(model_dir, 'wb') as file:
-            pickle.dump(best_model, file)
+            #重新连接设备，进行训练初始化设置
+            # self.send("connect_device", None)
 
-        for worker in old_workers:
-            self.send("reg_worker", worker)
+            for workers in old_workers:
+                self.send("unreg_worker", workers)
+                while self.get("unreg_worker") != None:
+                    time.sleep(0.1)
+
+            self.send("reg_worker", "EmptyWorker")
             while self.get('reg_worker') != None:
                 time.sleep(0.1)
 
-        self.send("start_worker", True)
+            self.send("start_worker", True)
 
-        self.root.destroy()
+            #开始实验
+            self.send("framework_type", 'experiment')
+            print(self.get("framework_type"))
+            self.send('experiment_parameters', self.parameters)
+            self.send("quit_par", True)
+            self.send("framework_state", 'closed')
 
-        sys.exit()
+            self.root.withdraw()  # 隐藏窗口
+
+            #等待实验完成后，application framework重启
+            while self.get("framework_state") == 'closed':
+                time.sleep(0.5)
+
+            self.send("unreg_worker", "EmptyWorker")
+            while self.get('unreg_worker') != None:
+                time.sleep(0.1)
+
+            self.root.deiconify()
+            print("start training")
+
+            model_name, best_model = self.training(experiment_name=self.parameters['experiment_name'], subject=self.parameters['subject'])
+
+            print("training accomplished")
+
+            #model saving 位置暂不支持自定义
+            home_dir = os.path.join(os.path.expanduser('~'), 'AssistBCI\\Personal_Model')
+            if not os.path.exists(home_dir):
+                os.makedirs(home_dir)
+
+            name = model_name + datetime.datetime.now().strftime("_%Y%m%d%H%M%S")
+            model_dir = os.path.join(home_dir, name + '.pkl')
+
+            with open(model_dir, 'wb') as file:
+                pickle.dump(best_model, file)
+
+            print("model saved")
+
+
+            for worker in old_workers:
+                self.send("reg_worker", worker)
+                while self.get('reg_worker') != None:
+                    time.sleep(0.1)
+
+            self.send("start_worker", True)
+
+            print("worker reload accomplish, started")
+
+            self.root.destroy()
+
+        except Exception as e:
+            print("Error Info:", e)
+            return
 
     def goto(self, next_win):
         self.next_win = next_win
@@ -1145,17 +1144,15 @@ class Experiment(Process):
         self.root.mainloop()
 
     def run(self):
-        while True:
+        while self.next_win:
             if self.next_win == 'mean':
+                self.next_win = None
                 self.main_window_setup()
             elif self.next_win == 'setup':
+                self.next_win = None
                 self.experiment_setup()
 
 
-
-if __name__ == "__main__":
-    a = Experiment()
-    a.start()
 
 
 

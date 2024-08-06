@@ -24,7 +24,7 @@ class Device(Process):
         }
 
         self.amplifier_default_parameters = {
-            'BlueBCI': self.save_hyper(device_address=('127.0.0.1', 12345), srate=1000, num_chans=8, use_trigger=False)
+            'BlueBCI': self.save_hyper(device_address=('192.168.31.170', 12345), srate=1000, num_chans=8)
         }
 
         self.worker_default_parameters = {
@@ -139,7 +139,7 @@ class Device(Process):
                     del self.device
                     self.send("device_state", 'not_connected')
 
-            elif self.get("reg_worker") != None:
+            if self.get("reg_worker") != None:
                 try:
                     self.device
                 except:
@@ -174,7 +174,7 @@ class Device(Process):
                     self.device.up_worker(worker.worker_name)
                     self.workers.append(name)
                 except:
-                    print("Fail to reg worker")
+                    print("Fail to reg worker!!")
                 finally:
                     self.send("reg_worker", None)
                     self.send("current_workers", self.workers)
@@ -188,28 +188,28 @@ class Device(Process):
                     break
                 name = self.get("unreg_worker")
                 try:
-                    self.device.down_worker(name)
-                    self.device.sleep(0.2)
+                    self.device.clear()
                     self.workers.remove(name)
+                    print("unreg worker and marker!!!!!!!!!!!!!!!!!!!")
                 except:
-                    print("Fail to unreg worker")
+                    print("Fail to unreg worker!!")
+
                 finally:
                     self.send("unreg_worker", None)
                     self.send("current_workers", self.workers)
 
 
-            if self.get("start_worker"):
+            elif self.get("start_worker"):
                 #再使用”start_worker"开始
                 try:
                     self.device.start_trans()
-                    print("worker started")
+                    print("worker started!!")
                 except:
                     print("Fail to start worker")
                 finally:
                     self.send("start_worker", False)
 
-
-            if self.get("stop_worker"):
+            elif self.get("stop_worker"):
                 try:
                     self.device
                 except:
@@ -217,7 +217,7 @@ class Device(Process):
                 try:
                     self.device.stop_trans()
                 except:
-                    print("Fail to stop worker")
+                    print("Fail to stop worker!!")
                 finally:
                     self.send("stop_worker", False)
 

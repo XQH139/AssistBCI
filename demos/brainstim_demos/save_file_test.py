@@ -114,3 +114,5 @@ class save_flie():
         else:
             self.dict_judge["identity_judge"] = None
             print('error happened')
+
+        return file_name.split('.')[0]

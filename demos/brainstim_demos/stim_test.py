@@ -78,7 +78,7 @@ if __name__ == "__main__":
 
     device = Device(dict)
     controller = CMD_Handler(dict)
-    paradigm = Paradigm(dict, win_size=[win_size[0], win_size[1]], fps=60)
+    paradigm = Paradigm(dict, win_size=[win_size[0], win_size[1]], fps=144)
     Main = menu(dict, win_size[0], win_size[1], 0,
                   caption="PsychoPy",
                   fullscreen=False)
@@ -103,7 +103,6 @@ if __name__ == "__main__":
     dict["reg_worker"] = 'ControlWorker'
     dict["start_worker"] = True
 
-    time.sleep(10)
     dict['framework_state'] = 'hiding'
     # dict['start_par'] = '#menu'
     dict['goto_menu'] = 'Desk'
@@ -125,7 +124,7 @@ if __name__ == "__main__":
 
         if _get_status(paradigm) == 'stopped' or _get_status(paradigm) == 'closed':
             print("paradigm_finished")
-            paradigm = Paradigm(dict=dict, win_size=[win_size[0], win_size[1]], fps=60)
+            paradigm = Paradigm(dict=dict, win_size=[win_size[0], win_size[1]], fps=144)
             paradigm.start()
 
         # if not paradigm.is_alive():

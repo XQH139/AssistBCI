@@ -274,59 +274,60 @@ class Paradigm(Process):
 
 
     def run(self):
-        framework_type = self.get('framework_type')
-        print("type:", framework_type)
-        first_time = True
+        while True:
+            framework_type = self.get('framework_type')
+            print("type:", framework_type)
+            first_time = True
 
-        if framework_type == 'application':
-            self.start_framework(framework=framework_type)
-            while self.get("framework_state") != 'closed' or first_time:
-                first_time = False
-                changes = set(self.list_files_in_stim_position(self.path)).symmetric_difference(set(self.file_paths))
-                for path in changes:
-                    if path in self.file_paths:
-                        print("path:", path)
-                        name = str(os.path.splitext(os.path.split(path)[1])[0])
-                        print("name:", name)
-                        self.framework.unregister_paradigm(name)
-                        self.file_paths.remove(path)
-                        self.paradigm_nameList.remove(name)
-                        del self.key_mouse_mapping[name]
-                    else:
-                        stim_info = self.read_file(path)
-                        if not self._validity_test(stim_info):
-                            print("invalidate file:", str(path))
-                            continue
-                        if stim_info['paradigm'] == 'ssvep':
-                            self.ssvep(stim_info, framework_type='application')
-                            self.paradigm_nameList.append(stim_info['name'])
-                            self.key_mouse_mapping[stim_info['name']] = stim_info['key_mouse_mapping']
-                        self.file_paths.append(path)
-                self.send('paradigm_list', self.paradigm_nameList)
-                self.send('CMD_list', self.key_mouse_mapping)
-                print("---------------------start framework----------------------")
-                self.framework.run(save_path=self.path, file_paths=self.file_paths)
+            if framework_type == 'application':
+                self.start_framework(framework=framework_type)
+                while self.get("framework_state") != 'closed' or first_time:
+                    first_time = False
+                    changes = set(self.list_files_in_stim_position(self.path)).symmetric_difference(set(self.file_paths))
+                    for path in changes:
+                        if path in self.file_paths:
+                            print("path:", path)
+                            name = str(os.path.splitext(os.path.split(path)[1])[0])
+                            print("name:", name)
+                            self.framework.unregister_paradigm(name)
+                            self.file_paths.remove(path)
+                            self.paradigm_nameList.remove(name)
+                            del self.key_mouse_mapping[name]
+                        else:
+                            stim_info = self.read_file(path)
+                            if not self._validity_test(stim_info):
+                                print("invalidate file:", str(path))
+                                continue
+                            if stim_info['paradigm'] == 'ssvep':
+                                self.ssvep(stim_info, framework_type='application')
+                                self.paradigm_nameList.append(stim_info['name'])
+                                self.key_mouse_mapping[stim_info['name']] = stim_info['key_mouse_mapping']
+                            self.file_paths.append(path)
+                    self.send('paradigm_list', self.paradigm_nameList)
+                    self.send('CMD_list', self.key_mouse_mapping)
+                    print("---------------------start framework----------------------")
+                    self.framework.run(save_path=self.path, file_paths=self.file_paths)
 
-        elif framework_type == 'experiment':
-            while self.get('experiment_parameters') == None:
-                time.sleep(0.1)
-            stim_info = self.get('experiment_parameters')
-            self.send('experiment_parameters', None)
+            elif framework_type == 'experiment':
+                while self.get('experiment_parameters') == None:
+                    time.sleep(0.1)
+                stim_info = self.get('experiment_parameters')
+                self.send('experiment_parameters', None)
 
-            print("stim_info['paradigm']=", stim_info['paradigm'])
+                print("stim_info['paradigm']=", stim_info['paradigm'])
 
-            if stim_info['device_type'] == "Light_trigger":
-                self.win_size_par = [self.win_size[0], int(self.win_size[1]*(7/8))]
-            self.start_framework(framework=framework_type)
+                if stim_info['device_type'] == "Light_trigger":
+                    self.win_size_par = [self.win_size[0], int(self.win_size[1]*(7/8))]
+                self.start_framework(framework=framework_type)
 
-            self.send('framework_type', 'application')
-            if stim_info['paradigm'] == 'SSVEP':
-                self.ssvep(stim_info, framework_type='experiment')
-                self.framework.goto_par("Training SSVEP")
-                print("set goto_par OK")
-                self.send('paradigm_list', [])
-                self.send('CMD_list', {})
-                self.framework.run()
-                print("here1")
+                self.send('framework_type', 'application')
+                if stim_info['paradigm'] == 'SSVEP':
+                    self.ssvep(stim_info, framework_type='experiment')
+                    self.framework.goto_par("Training SSVEP")
+                    print("set goto_par OK")
+                    self.send('paradigm_list', [])
+                    self.send('CMD_list', {})
+                    self.framework.run()
+                    print("here1")
 
 

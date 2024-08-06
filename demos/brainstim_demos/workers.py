@@ -184,9 +184,10 @@ class ControlWorker(ProcessWorker):
 
         # model loading
         home_dir = os.path.join(os.path.expanduser('~'), 'AssistBCI\\Personal_Model')
-        model_paths = [os.path.join(home_dir, file) for file in os.listdir(home_dir)]
 
-        if not model_paths:
+        try:
+            model_paths = [os.path.join(home_dir, file) for file in os.listdir(home_dir)]
+        except:
             print("no model to use")
             self.use_model = False
             return
@@ -204,7 +205,12 @@ class ControlWorker(ProcessWorker):
 
 
     def consume(self, data):
-        print("-------------------Entering consume1-------------------")
+        if not self._buffer['CMD_list'] or not self._buffer["current_par"]:
+            #par not started
+            print("CMD_list:", self._buffer['CMD_list'])
+            print("current_par:", self._buffer["current_par"])
+            return
+
         if self.use_model:
             self.delay = 0  # seconds
             self.duration = 4  # seconds
@@ -222,6 +228,8 @@ class ControlWorker(ProcessWorker):
             data = data[np.newaxis, :, int(interval[0]):int(interval[1])]
             data = data[..., :int(srate * self.duration)]
 
+            print("shape:", data.shape)
+
             # print("---CMD---:", self._buffer['CMD_list'][self._buffer["current_par"]])
             try:
                 p_labels, features = self.classfier.predict(data)
@@ -237,10 +245,9 @@ class ControlWorker(ProcessWorker):
                 else:
                     print("Please train a new model, class overflow")
                     self.clear_queue()
+
             except:
                 print("Error")
-        else:
-            print("consume have no model")
 
     def post(self):
         pass
