@@ -242,11 +242,10 @@ class BaseAmplifier:
         2022-08-10 by Wei Zhao
     """
 
-    def __init__(self, use_trigger=True):
+    def __init__(self):
         self._markers = {}
         self._workers = {}
         self._exit = threading.Event()
-        self.use_trigger = use_trigger  #加入应用时无trigger分发数据
 
     @abstractmethod
     def recv(self):
@@ -293,12 +292,8 @@ class BaseAmplifier:
             worker = self._workers[work_name]
             for sample in samples:
                 marker.append(sample)
-                if self.use_trigger:
-                    if marker(sample[-1]) and worker.is_alive():
-                        worker.put(marker.get_epoch())
-                else:
-                    if marker.isfull() and worker.is_alive():
-                        worker.put(marker.get_epoch())
+                if marker(sample[-1]) and worker.is_alive():
+                    worker.put(marker.get_epoch())
 
     def up_worker(self, name):
         logger_amp.info("up worker-{}".format(name))
@@ -889,9 +884,8 @@ class BlueBCI(BaseAmplifier):
             srate: float = 1000,
             num_chans: int = 8,
             lsl_source_id: str = "trigger",
-            use_trigger: bool = True
     ):
-        super().__init__(use_trigger=use_trigger)
+        super().__init__()
         self.device_address = device_address
         self.srate = srate
         self.num_chans = num_chans
@@ -899,12 +893,14 @@ class BlueBCI(BaseAmplifier):
         # the size of a package in neuroscan data is
         # 15*33bytes= 495 bytes
         self.timeout = 2 * 25 / self.srate
-        self.n = 15  # n 应该根据你的实际需求来设置
+        self.n = 500  # n 应该根据你的实际需求来设置
         self.buffer_size = 33 * self.n
         self.tcp_link.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, self.buffer_size)
 
         self.lsl_source_id = lsl_source_id
         self.streams = []
+
+        self.use_trigger = False
 
         #self.rise = True
 
@@ -919,13 +915,11 @@ class BlueBCI(BaseAmplifier):
         if self.use_trigger:
             if not self.streams:
                 self.streams = resolve_byprop(
-                    "source_id", self.lsl_source_id, timeout=5
+                    "source_id", self.lsl_source_id, timeout=0.0001
                 )  # Resolve all streams by source_id
                 if self.streams:
                     self.inlet = StreamInlet(self.streams[0])
                     print("Connected to port")
-                else:
-                    print("Waiting for port")
 
         ###
 
@@ -947,6 +941,7 @@ class BlueBCI(BaseAmplifier):
         column_num = int(bytes_to_read / 33)
         data_recv1 = data_recv.reshape((33, column_num), order='F')
         data_recv2 = np.array(data_recv1).astype(np.float64)
+
 
         road = data_recv1[2:27:3, :]  # 从索引3开始每隔3取一行
         road = road.T
@@ -977,8 +972,9 @@ class BlueBCI(BaseAmplifier):
         if (result_matrix[:, -1] > 0).any():
             samples = None
             timestamp = None
+            self.use_trigger = True
             try:
-                samples, timestamp = self.inlet.pull_sample(timeout=0.05)
+                samples, timestamp = self.inlet.pull_sample(timeout=0.001)
                 print("event received", samples[0])
                 if samples != None and timestamp != None:
                     for i in range(len(result_matrix[:, -1])):

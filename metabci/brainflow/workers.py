@@ -89,6 +89,7 @@ class ProcessWorker(multiprocessing.Process):
         multiprocessing.Process.__init__(self)
         self.daemon = False
         self._exit = multiprocessing.Event()
+        self._exit.clear()
         self._in_queue: multiprocessing.Queue[Any] = multiprocessing.Queue()
         self.timeout = timeout
         self.worker_name = name
@@ -109,12 +110,14 @@ class ProcessWorker(multiprocessing.Process):
             Single trial of online data.
 
         """
-        if self._exit.is_set():
+
+        if not self._exit.is_set():
             logger.info(
                 "put samples in worker-{}".format(
                     self.worker_name if self.worker_name else os.getpid()
                 )
             )
+
             self._in_queue.put(data)
 
     def run(self):
