@@ -2480,7 +2480,8 @@ def paradigm(
         if port_addr:
             port = Light_trigger(w=w, h=h)
             port.start()
-            time.sleep(10)
+            while not port.win_start.is_set():
+                time.sleep(0.1)
         else:
             port = None
     else:
@@ -2506,6 +2507,7 @@ def paradigm(
             VSObject.res_text_pos = copy(VSObject.reset_res_pos)
             VSObject.symbol_text = copy(VSObject.reset_res_text)
             res_text_pos = VSObject.reset_res_pos
+
         if lsl_source_id: ###会出现最后解码返回标签失效 #改进
             inlet = True
             streams = resolve_byprop(
@@ -3208,3 +3210,4 @@ def paradigm_apply(
                     win.flip()
 
     send('quit_par', False)
+

@@ -3,9 +3,11 @@ from psychopy import parallel
 import numpy as np
 from demos.brainstim_demos.app_test import APP
 from pylsl import StreamInfo, StreamOutlet
-from multiprocessing import Event
+from multiprocessing import Event, Process
 import pyglet
 import time
+import tkinter as tk
+from tkinter import ttk
 
 
 class NeuroScanPort:
@@ -139,8 +141,73 @@ class LsLPort:
 
 
 
-class Light_trigger(APP):
-    def __init__(self, lsl_source_id="trigger", w=1920, h=1080, screen_id=0):
+# class Light_trigger(APP):
+#     def __init__(self, lsl_source_id="trigger", w=1920, h=1080, screen_id=0):
+#         self.trigger_ = Event()
+#         self._exit = Event()
+#         self._exit.clear()
+#         self.trigger_.clear()
+#         self.outlet = []
+#         self.start_setData = False
+#         self.lsl_source_id = lsl_source_id
+#         super().__init__(name='stim_pos_setting', w=w, h=h, screen_id=screen_id)
+#
+#     def control(self, dt):
+#         super().control(dt)
+#         if self._exit.is_set():
+#             pyglet.app.exit()
+#
+#     def main_App(self):
+#         self.get_win(win_style='overlay')
+#         self.button_setting()
+#         self.reg_handlers(self.on_draw)
+#         pyglet.app.run()
+#
+#     def button_setting(self):
+#         #self.sq = pyglet.shapes.Rectangle(x=self.w-200, y=0, width=200, height=200)
+#         self.sq = pyglet.shapes.Rectangle(x=0, y=0, width=self.w, height=int(self.h / 8))
+#         self.sq.color = (0, 0, 0)
+#
+#     def on_draw(self):
+#         self.window.clear()
+#         if self.trigger_.is_set():
+#             self.sq.color = (250, 250, 250)
+#             self.sq.draw()
+#             self.trigger_.clear()
+#             self.sq.color = (0, 0, 0)
+#
+#         else:
+#             self.sq.draw()
+#
+#     def setData(self, event):
+#         if event == -1:
+#             self._exit.set()
+#         elif self.start_setData and event != 0:
+#             self.trigger_.set()
+#             while not self.outlet.have_consumers():
+#                 time.sleep(0.001)
+#             self.outlet.push_sample([event])
+#             print("send event succeed", event)
+#         if not self.start_setData:
+#             print("--------------------------port start--------------------------")
+#             info = StreamInfo(
+#                 name='event_transmitter',
+#                 type='event',
+#                 channel_count=1,
+#                 nominal_srate=0,
+#                 channel_format='int32',
+#                 source_id=self.lsl_source_id)
+#             self.outlet = StreamOutlet(info)
+#             print('Waiting for Amplifier...')
+#             self.start_setData = True
+#             while self.outlet.have_consumers():
+#                 time.sleep(0.1)
+#
+
+class Light_trigger(Process):
+
+    def __init__(self, lsl_source_id="trigger", w=1920, h=1080):
+        Process.__init__(self)
         self.trigger_ = Event()
         self._exit = Event()
         self._exit.clear()
@@ -148,35 +215,39 @@ class Light_trigger(APP):
         self.outlet = []
         self.start_setData = False
         self.lsl_source_id = lsl_source_id
+        self.fps = 90
+        self.w = w
+        self.h = h
+        self.win_start = Event()
+        self.win_start.clear()
 
-        super().__init__(name='stim_pos_setting', w=w, h=h, screen_id=screen_id)
-
-    def control(self, dt):
-        super().control(dt)
-        if self._exit.is_set():
-            pyglet.app.exit()
-
-    def main_App(self):
-        self.get_win(win_style='overlay')
-        self.button_setting()
-        self.reg_handlers(self.on_draw)
-        pyglet.app.run()
-
-    def button_setting(self):
-        #self.sq = pyglet.shapes.Rectangle(x=self.w-200, y=0, width=200, height=200)
-        self.sq = pyglet.shapes.Rectangle(x=0, y=0, width=self.w, height=int(self.h / 8))
-        self.sq.color = (0, 0, 0)
-
-    def on_draw(self):
-        self.window.clear()
+    def toggle_color(self):
         if self.trigger_.is_set():
-            self.sq.color = (250, 250, 250)
-            self.sq.draw()
+            self.canvas.itemconfig(self.square, fill="white")
             self.trigger_.clear()
-            self.sq.color = (0, 0, 0)
-
         else:
-            self.sq.draw()
+            current_color = self.canvas.itemcget(self.square, "fill")
+            if current_color == "white":
+                self.canvas.itemconfig(self.square, fill="black")
+
+    def run(self):
+        self.root = tk.Tk()
+        self.root.wm_attributes("-topmost", 1)
+        self.root.overrideredirect(True)
+        # x = int((self.root.winfo_screenwidth() - label.winfo_reqwidth()) / 2)
+        # y = int((self.root.winfo_screenheight() - label.winfo_reqheight()) / 2)
+        self.root.geometry("+{}+{}".format(-10, int(self.h* 7/8)))
+        self.canvas = tk.Canvas(self.root, width=self.w+20, height=int(self.h/8))
+        self.canvas.pack()
+        self.square = self.canvas.create_rectangle(0, 0, self.w+20, int(self.h/8), fill="black")
+        self.win_start.set()
+
+        while not self._exit.is_set():
+            self.toggle_color()
+            self.root.update()
+            time.sleep(1/self.fps)
+
+        self.root.destroy()
 
     def setData(self, event):
         if event == -1:
@@ -184,10 +255,10 @@ class Light_trigger(APP):
         elif self.start_setData and event != 0:
             self.trigger_.set()
             while not self.outlet.have_consumers():
-                time.sleep(0.1)
+                time.sleep(0.001)
             self.outlet.push_sample([event])
             print("send event succeed", event)
-        if not self.start_setData:
+        elif not self.start_setData:
             print("--------------------------port start--------------------------")
             info = StreamInfo(
                 name='event_transmitter',
@@ -199,6 +270,10 @@ class Light_trigger(APP):
             self.outlet = StreamOutlet(info)
             print('Waiting for Amplifier...')
             self.start_setData = True
+            while self.outlet.have_consumers():
+                time.sleep(0.1)
+
+
 
 
 
@@ -253,3 +328,5 @@ def _clean_dict(old_dict, includes=[]):
             old_dict[name] = None
             del old_dict[name]
     return old_dict
+
+

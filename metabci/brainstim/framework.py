@@ -703,10 +703,11 @@ class AssistBCI:
             self.send("framework_state", 'started')
             self.initEvent()
             self.warmup()
+        try:
+            win = self.get_window(win_style='overlay')
             # capture runtime errors
             trialClock = core.Clock()
             t = lastFPSupdate = 0
-            win = self.get_window(win_style='overlay')
             if self.record_frames:
                 fps_textstim = visual.TextStim(
                     win,
@@ -718,8 +719,6 @@ class AssistBCI:
                     alignText="left",
                     anchorHoriz="left",
                 )
-
-        try:
 
             self.send('quit_par', False)
             self.send("current_par", None)
@@ -820,4 +819,5 @@ class AssistBCI:
                     win.saveFrameIntervals("logLastFrameIntervals.log")
                 win.close()
                 self.closeEvent()
+            print("quit framework for undate")
 
