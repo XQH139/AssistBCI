@@ -24,7 +24,8 @@ class Device(Process):
         }
 
         self.amplifier_default_parameters = {
-            'BlueBCI': self.save_hyper(device_address=('192.168.31.170', 12345), srate=1000, num_chans=8)
+            'BlueBCI': self.save_hyper(device_address=('192.168.31.170', 12345), srate=1000, num_chans=8),
+            'NeuroScan': self.save_hyper(device_address=('192.168.1.30', 4000), srate=1000, num_chans=68)
         }
 
         self.worker_default_parameters = {

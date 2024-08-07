@@ -16,18 +16,6 @@ from demos.brainstim_demos.device_worker import Device
 from key_mouse_beta import CMD_Handler
 import psutil
 
-# if __name__ == "__main__":
-#     dict = multiprocessing.Manager().dict()
-#     dict['sys_key'] = None
-#     dict['start_app'] = None
-#     dict['start_par'] = None
-#     dict['pause_app'] = False
-#     dict['pra_exit_check'] = False
-#     dict['save_par'] = False
-#     dict['data_par'] = None
-#     dict['app_exit_check'] = False
-#     controller = CMD_Handler(dict)
-#     controller.start()
 
 def _get_status(subprocess=None):
 
@@ -51,7 +39,8 @@ def _get_status(subprocess=None):
 if __name__ == "__main__":
 
     #ctypes.windll.user32.SetProcessDPIAware()
-    win_size = np.array([1920, 1081])
+    win_size = np.array([1920, 1081]) #可以比显示器真实尺寸稍小，或稍大
+    fps = 90
 
 
     dict = multiprocessing.Manager().dict()
@@ -78,7 +67,7 @@ if __name__ == "__main__":
 
     device = Device(dict)
     controller = CMD_Handler(dict)
-    paradigm = Paradigm(dict, win_size=[win_size[0], win_size[1]], fps=144)
+    paradigm = Paradigm(dict, win_size=[win_size[0], win_size[1]], fps=fps)
     Main = menu(dict, win_size[0], win_size[1], 0,
                   caption="PsychoPy",
                   fullscreen=False)
@@ -124,7 +113,7 @@ if __name__ == "__main__":
 
         if _get_status(paradigm) == 'stopped' or _get_status(paradigm) == 'closed':
             print("paradigm_finished")
-            paradigm = Paradigm(dict=dict, win_size=[win_size[0], win_size[1]], fps=144)
+            paradigm = Paradigm(dict=dict, win_size=[win_size[0], win_size[1]], fps=fps)
             paradigm.start()
 
         # if not paradigm.is_alive():
